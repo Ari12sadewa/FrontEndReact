@@ -19,6 +19,20 @@ const EditButton = ({ pub, type, onClick }) => (
     </button>
 );
 
+const SortButton = ({ active, direction, onClick, children }) => (
+    <button
+        onClick={onClick}
+        className={`flex items-center cursor-pointer gap-1 hover:text-blue-200 transition-colors duration-200 ${
+            active ? 'text-blue-200' : 'text-white'
+        }`}
+    >
+        {children}
+        <span className="text-sm">
+            {active ? (direction === 'asc' ? '↑' : '↓') : '↕'}
+        </span>
+    </button>
+);
+
 const EmptyState = ({ searchTerm }) => (
     <div className="text-center py-12">
         <div className="mx-auto h-24 w-24 text-gray-400">
@@ -62,6 +76,8 @@ export default function PublicationListPage() {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [tmpPub, setTmpPub] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [sortBy, setSortBy] = useState('date'); // 'date' atau 'title'
+    const [sortDirection, setSortDirection] = useState('desc'); // 'asc' atau 'desc'
     const navigate = useNavigate();
     const { publications, deletePublication, } = usePublications();
 
@@ -80,6 +96,17 @@ export default function PublicationListPage() {
         } finally {
             setShowDeleteConfirm(false);
             setTmpPub(null);
+        }
+    };
+
+    const handleSort = (column) => {
+        if (sortBy === column) {
+            // Jika kolom yang sama diklik, toggle direction
+            setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+        } else {
+            // Jika kolom berbeda, set kolom baru dan direction default
+            setSortBy(column);
+            setSortDirection(column === 'date' ? 'desc' : 'asc');
         }
     };
 
@@ -105,11 +132,29 @@ export default function PublicationListPage() {
         return regex.test(combinedText);
     });
 
+    // Sorting logic
+    const sortedPublications = [...filteredPublications].sort((a, b) => {
+        if (sortBy === 'date') {
+            const dateA = new Date(a.releaseDate);
+            const dateB = new Date(b.releaseDate);
+            return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
+        } else if (sortBy === 'title') {
+            const titleA = a.title.toLowerCase();
+            const titleB = b.title.toLowerCase();
+            if (sortDirection === 'asc') {
+                return titleA.localeCompare(titleB);
+            } else {
+                return titleB.localeCompare(titleA);
+            }
+        }
+        return 0;
+    });
+
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">
             <header className="mb-8 text-center md:text-left">
                 <h1 className="text-3xl sm:text-4xl font-bold text-gray-800">Daftar Publikasi</h1>
-                <p className="text-gray-500 mt-1">Sumber data publikasi terkini ({filteredPublications.length} publikasi)</p>
+                <p className="text-gray-500 mt-1">Sumber data publikasi terkini ({sortedPublications.length} publikasi)</p>
             </header>
 
             <div className="mb-6">
@@ -122,7 +167,7 @@ export default function PublicationListPage() {
                 />
             </div>
 
-            {filteredPublications.length === 0 ? (
+            {sortedPublications.length === 0 ? (
                 <EmptyState searchTerm={searchTerm} />
             ) : (
                 <div className="relative overflow-x-auto shadow-xl rounded-lg">
@@ -130,14 +175,34 @@ export default function PublicationListPage() {
                         <thead className="text-xs text-center text-white uppercase bg-blue-800">
                             <tr>
                                 <th className="px-6 py-3 text-center w-16">No</th>
-                                <th className="px-6 py-3">Judul</th>
-                                <th className="px-6 py-3">Tanggal Rilis</th>
+                                <th className="px-6 py-3 justify-center hover:bg-blue-700 cursor-pointer transition-color duration-500"
+                                    onClick={() => handleSort('title')}
+                                >
+                                    <SortButton
+                                        className="px-6 py-3 text-center cursor-pointer"
+                                        active={sortBy === 'title'}
+                                        direction={sortDirection}
+                                    >
+                                        Judul
+                                    </SortButton>
+                                </th>
+                                <th className="px-6 py-3 justify-center hover:bg-blue-700  cursor-pointer transition-color duration-500"
+                                    onClick={() => handleSort('date')}
+                                >
+                                    <SortButton
+                                        className="px-6 py-3 text-center cursor-pointer"
+                                        active={sortBy === 'date'}
+                                        direction={sortDirection}
+                                    >
+                                        Tanggal Rilis
+                                    </SortButton>
+                                </th>
                                 <th className="px-6 py-3 text-center">Sampul</th>
                                 <th className="px-6 py-3 text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredPublications.map((pub, idx) => (
+                            {sortedPublications.map((pub, idx) => (
                                 <tr
                                     key={pub.id}
                                     className={`bg-white border-b hover:bg-gray-50 transition-colors duration-200 ${pub.tautan ? 'cursor-pointer hover:bg-sky-100' : ''
