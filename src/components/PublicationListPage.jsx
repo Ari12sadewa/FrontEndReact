@@ -61,7 +61,7 @@ function highlightText(text, searchTerm) {
 
     return parts.map((part, index) => {
         if (regex.test(part)) {
-            return `<mark class="bg-yellow-200 px-1 rounded">${part}</mark>`;
+            return `<mark class="bg-blue-200 px-1 rounded">${part}</mark>`;
         }
         return part;
     }).join('');
